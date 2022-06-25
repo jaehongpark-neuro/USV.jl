@@ -1,6 +1,6 @@
 # functions for wavesurfer reading
 
-# voltage scales for the analog singals
+# Scaling for the analog singals
 function scaledDoubleAnalogData(data::Matrix{Int16},Scales::Matrix{Float64},sc::Matrix{Float64})
 
     inverseChannelScales=1.0./Scales;
@@ -23,6 +23,11 @@ function scaledDoubleAnalogData(data::Matrix{Int16},Scales::Matrix{Float64},sc::
     return scaledData
 end
 
+function matrix_to_vector_vector(data::Matrix{T}) where T
+    r,c = size(data)
+    data_vec_vec = [data[:,i] for i in 1:c]
+end
+
 # load .h5 file from wavesurfer
 function loadNIDAQdataFromh5(name)
     fid = h5open(name,"r")
@@ -34,8 +39,14 @@ function loadNIDAQdataFromh5(name)
     channelScales = read(fid["header/AIChannelScales"])
     scalingCoefficients = read(fid["header/AIScalingCoefficients"])
 
+    # scale factors
     datas = scaledDoubleAnalogData(analogs,channelScales,scalingCoefficients);
-    return datas,timestamps # Matrix for analog data and TTL inputs
+
+    # convert Matrix{T} to Vector{Vector{T}}
+    data = matrix_to_vector_vector(datas)
+    ttl = matrix_to_vector_vector(timestamps)
+
+    return data,ttl # Matrix for analog data and TTL inputs
 end
 
 # downsampling for analog signals and create a new timevector for it
@@ -50,6 +61,17 @@ function analog_down(anal::Vector{Float64},sample::Int64,down::Int64)
     return anal_resample,time_resample
 end
 
+function analog_down(anal::Vector{Vector{Float64}},sample::Int64,down::Int64)
+    rate = down/sample
+    new_anal = [resample(a,rate) for a in anal]
+    
+    len = Int(length(anal[1])*rate)
+    time_resample = range(0,step=1/down,length=len)
+    
+    return new_anal, time_resample
+end
+
+
 # downsampling for ttl signals
 
 function ttl_down(ttl::Vector{UInt8},sample::Int64,down::Int64)
@@ -62,4 +84,16 @@ function ttl_down(ttl::Vector{UInt8},sample::Int64,down::Int64)
         new_ttl[n] = ttl[rate*(n-1)+1]
     end
     return new_ttl
+end
+
+# for V{V{T}}
+function td(ttl::Vector{UInt8},rate::Int64,ntl::Int64)
+    [ttl[rate*(n-1)+1] for n in 1:ntl]
+end
+
+function ttl_down(tl::Vector{Vector{UInt8}},sample::Int64,down::Int64)
+    rate  = Int(sample/down)
+    new_ttl_length = Int(length(tl[1])/rate)
+    new_ttl = [td(t,rate,new_ttl_length) for t in tl]
+    
 end
