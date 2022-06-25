@@ -37,9 +37,9 @@ function plot_usv(sp,laser,air_down,time_down)
 
     # air flow
     x = 1 # as integer index
-    air_points = Node(update_points(time_down[x:x+2000],air_down[x:x+2000]))
-    audio_points = Node(update_points(sp.t[1:250*2000],sp.audio[1:250*2000]))
-    sng = Node(sp.fout[:,x:x+4000]')
+    air_points = Observable(update_points(time_down[x:x+2000],air_down[x:x+2000]))
+    audio_points = Observable(update_points(sp.t[1:250*2000],sp.audio[1:250*2000]))
+    sng = Observable(sp.fout[:,x:x+4000]')
 
     air_points = lift(sl_x.slider.value) do x
         x_range = x:x+5000
@@ -95,10 +95,10 @@ function plot_usv(sp,laser,air_down,time_down,timespan::Int64)
     # air flow
     x = 1 # as integer index
     # initialize
-    air_points = Node(update_points(time_down[x:x+2000],air_down[x:x+2000]))
-    laser_points = Node(update_points(time_down[x:x+2000],laser[x:x+2000]))
-    audio_points = Node(update_points(sp.t[1:250*2000],sp.audio[1:250*2000]))
-    sng = Node(sp.fout[:,x:x+4000]')
+    air_points = Observable(update_points(time_down[x:x+2000],air_down[x:x+2000]))
+    laser_points = Observable(update_points(time_down[x:x+2000],laser[x:x+2000]))
+    audio_points = Observable(update_points(sp.t[1:250*2000],sp.audio[1:250*2000]))
+    sng = Observable(sp.fout[:,x:x+4000]')
 
     air_points = lift(sl_x.slider.value) do x
         x_range = x:x+timespan*1000
@@ -112,7 +112,7 @@ function plot_usv(sp,laser,air_down,time_down,timespan::Int64)
     laser_points = lift(sl_x.slider.value) do x
         x_range = x:x+timespan*1000
         
-        lp = update_points(time_down[x_range],laser[x_range])
+        lp = update_points(time_down[x_range],laser[x_range].*4)
         xlims!(axes[1],time_down[x_range[1]],time_down[x_range[end]])
     
         return lp
@@ -144,7 +144,7 @@ function plot_usv(sp,laser,air_down,time_down,timespan::Int64)
     
     
     lines!(axes[1],air_points,color=:red,linewidth=2)
-    lines!(axes[1],laser_points,color=:cyan,linewidth=0.2)
+    lines!(axes[1],laser_points,color=:cyan,linewidth=1)
     lines!(axes[2],audio_points,color=:blue,linewidth=2)
     heatmap!(axes[3],sng,colormap=:hot,colorrange=(0.0, 0.7))
 
